@@ -9,9 +9,9 @@ on:
 
 env:
   AWS_REGION: us-east-2
-  ECR_DEV: <048271427486>.dkr.ecr.us-east-2.amazonaws.com/gamehub-dev
-  ECR_TEST: <048271427486>.dkr.ecr.us-east-2.amazonaws.com/gamehub-test
-  ECR_PROD: <048271427486>.dkr.ecr.us-east-2.amazonaws.com/gamehub-prod
+  ECR_DEV: 048271427486.dkr.ecr.us-east-2.amazonaws.com/gamehub-dev
+  ECR_TEST: 048271427486.dkr.ecr.us-east-2.amazonaws.com/gamehub-test
+  ECR_PROD: 048271427486.dkr.ecr.us-east-2.amazonaws.com/gamehub-prod
   SECRET_DEV: gamehub/dev
   SECRET_TEST: gamehub/test
   SECRET_PROD: gamehub/prod
