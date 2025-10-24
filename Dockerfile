@@ -3,7 +3,6 @@
 # ---------------------------
 FROM node:20-alpine AS build
 
-# Set working directory
 WORKDIR /app
 
 # Copy package files and install dependencies
@@ -13,9 +12,10 @@ RUN npm ci --legacy-peer-deps
 # Copy rest of the project
 COPY . .
 
-# Pass environment variable (e.g. VITE_API_KEY) from Secrets Manager
-# This will come from your GitHub Actions pipeline (.env.production)
-# The build command will automatically pick it up
+# ✅ Copy environment variables from GitHub Actions
+COPY .env.production .env
+
+# Build React app (will now include VITE_API_KEY)
 RUN npm run build
 
 # ---------------------------

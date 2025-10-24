@@ -78,7 +78,7 @@ jobs:
       # -------------------------------
       - name: Build Docker image
         run: |
-          echo "${{ steps.secrets.outputs.secret_json }}" > .env.production
+          echo "VITE_API_KEY=${{ steps.secrets.outputs.secret_json }}" > .env.production
           docker build -t gamehub:${{ steps.env.outputs.env_name }} .
 
           docker tag gamehub:${{ steps.env.outputs.env_name }} ${{ steps.env.outputs.ecr_repo }}:latest
