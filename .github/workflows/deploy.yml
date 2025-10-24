@@ -67,20 +67,29 @@ jobs:
       # -------------------------------
       # 4️⃣ Retrieve Secrets from Secrets Manager
       # -------------------------------
-      - name: Get secrets from AWS Secrets Manager
+      - name: Get API key from AWS Secrets Manager
         id: secrets
         run: |
-          SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id ${{ steps.env.outputs.secret_name }} --query SecretString --output text)
-          echo "secret_json=$SECRET_JSON" >> $GITHUB_OUTPUT
+          RAW_SECRET=$(aws secretsmanager get-secret-value \
+            --secret-id ${{ steps.env.outputs.secret_name }} \
+            --query SecretString \
+            --output text)
+          # Extract only the API key value (if stored as JSON)
+          API_KEY=$(echo "$RAW_SECRET" | jq -r '.VITE_API_KEY // .api_key // .key // .API_KEY // .value // .secret // .[]? // empty')
+          if [ -z "$API_KEY" ]; then
+            API_KEY=$RAW_SECRET
+          fi
+          echo "API_KEY=$API_KEY" >> $GITHUB_ENV
 
       # -------------------------------
       # 5️⃣ Build and Tag Docker Image
       # -------------------------------
       - name: Build Docker image
         run: |
-          echo "VITE_API_KEY=${{ steps.secrets.outputs.secret_json }}" > .env.production
+          echo "VITE_API_KEY=${API_KEY}" > .env.production
+          echo ".env.production contents:"
+          cat .env.production
           docker build -t gamehub:${{ steps.env.outputs.env_name }} .
-
           docker tag gamehub:${{ steps.env.outputs.env_name }} ${{ steps.env.outputs.ecr_repo }}:latest
 
       # -------------------------------
