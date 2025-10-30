@@ -1,22 +1,38 @@
-import { useGenres } from "@/hooks/useGenre";
+import { useGenres, type Genres } from "@/hooks/useGenre";
 import { GameImageCropURL } from "@/services/GameImageCropURL";
-import { HStack, Image, List, Text } from "@chakra-ui/react";
+import { Button, HStack, Image, List, Text } from "@chakra-ui/react";
+import { useColorMode } from "../ui/color-mode";
 
-export const GenreList = () => {
+interface GenreListProps {
+  onSelectGenre: (genre: Genres) => void;
+}
+
+export const GenreList = (props: GenreListProps) => {
+  const { onSelectGenre } = props;
   const { data, error } = useGenres();
+  const { colorMode } = useColorMode();
 
   return (
     <>
       {error && <Text>{error}</Text>}
       <List.Root>
         {data.map((genre) => (
-          <HStack paddingY="5px">
+          <HStack>
             <Image
               src={GameImageCropURL(genre.image_background)}
               boxSize="32px"
               borderRadius={8}
             />
-            <Text fontSize="lg">{genre.name}</Text>
+            <Button
+              onClick={() => onSelectGenre(genre)}
+              fontSize="lg"
+              variant="outline"
+              padding={0}
+              border={0}
+              _hover={{ bg: colorMode === "light" ? "gray.200" : "gray.700" }}
+            >
+              {genre.name}
+            </Button>
           </HStack>
         ))}
       </List.Root>
