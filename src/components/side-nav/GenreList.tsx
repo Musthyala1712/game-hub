@@ -1,6 +1,6 @@
 import { useGenres } from "@/hooks/useGenre";
 import { GameImageCropURL } from "@/services/GameImageCropURL";
-import { HStack, Image, List, ListItem, Text } from "@chakra-ui/react";
+import { HStack, Image, List, Text } from "@chakra-ui/react";
 
 export const GenreList = () => {
   const { data, error } = useGenres();
