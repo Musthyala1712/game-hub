@@ -24,21 +24,21 @@ export const GenreList = ({ onSelectGenre, selectedGenre }: GenreListProps) => {
               style={{
                 display: "flex",
                 flexDirection: "row",
-                gap: "5px",
-                marginBottom: "8px",
               }}
             >
               <Image
                 src={GameImageCropURL(genre.image_background)}
                 boxSize="32px"
                 borderRadius={8}
+                objectFit="cover"
               />
               <Button
                 onClick={() => onSelectGenre(genre)}
                 fontSize="lg"
                 variant="outline"
-                padding="10px"
                 border={0}
+                whiteSpace="nowrap"
+                textAlign="left"
                 bg={
                   isActive
                     ? colorMode === "light"
@@ -49,7 +49,6 @@ export const GenreList = ({ onSelectGenre, selectedGenre }: GenreListProps) => {
                 _hover={{
                   bg: colorMode === "light" ? "gray.200" : "gray.700",
                 }}
-                height="25px"
               >
                 {genre.name}
               </Button>

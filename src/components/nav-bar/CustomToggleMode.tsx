@@ -8,7 +8,9 @@ export const CustomToggleMode = () => {
     <Switch.Root>
       <Switch.HiddenInput onClick={toggleColorMode} />
       <Switch.Control />
-      <SwitchLabel style={{ fontSize: "10px" }}>Dark Mode</SwitchLabel>
+      <SwitchLabel whiteSpace="nowrap" style={{ fontSize: "10px" }}>
+        Dark Mode
+      </SwitchLabel>
     </Switch.Root>
   );
 };
