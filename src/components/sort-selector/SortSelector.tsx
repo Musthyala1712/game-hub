@@ -3,22 +3,27 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
-import { usePlatforms, type Platform } from "@/hooks/usePlatforms";
 import { useColorMode } from "../ui/color-mode";
 
 const ITEM_HEIGHT = 40;
 const ITEM_PADDING_TOP = 8;
 
-interface PlatFormSelectorProps {
-  onSelectPlatform: (platform: Platform) => void;
-  selectedPlatform: Platform | null;
+interface SortSelectorProps {
+  onSelectSortOrder: (sortOrder: string) => void;
+  sortOrder?: string;
 }
-
-export default function PlatFormSelector(props: PlatFormSelectorProps) {
+export const SortSelector = (props: SortSelectorProps) => {
+  const { onSelectSortOrder, sortOrder } = props;
   const { colorMode } = useColorMode();
-  const { onSelectPlatform, selectedPlatform } = props;
-  const { data } = usePlatforms();
-
+  const sortOrders = [
+    { value: "", label: "Relevance" },
+    { value: "-added", label: "Date Added" },
+    { value: "name", label: "Name" },
+    { value: "-released", label: "Release Date" },
+    { value: "-metacritic", label: "Popularity" },
+    { value: "-rating", label: "Average Rating" },
+  ];
+  const customOrder = sortOrders.find((order) => order.value === sortOrder);
   return (
     <div>
       <FormControl sx={{ m: 1, width: 250 }}>
@@ -26,15 +31,15 @@ export default function PlatFormSelector(props: PlatFormSelectorProps) {
           id="demo-multiple-name-label"
           style={{ color: colorMode === "dark" ? "#fff" : "#000" }}
         >
-          Platforms
+          Order by : {customOrder?.label || "Relevance"}
         </InputLabel>
         <Select
           labelId="demo-multiple-name-label"
           id="demo-multiple-name"
           multiple
-          value={selectedPlatform ? [selectedPlatform.name] : []}
+          value={sortOrder ? [sortOrder] : [""]}
           onChange={() => {}}
-          input={<OutlinedInput label="Platforms" />}
+          input={<OutlinedInput label="Order by : Relevance" />}
           MenuProps={{
             slotProps: {
               paper: {
@@ -52,17 +57,17 @@ export default function PlatFormSelector(props: PlatFormSelectorProps) {
             color: colorMode === "dark" ? "#fff" : "#000",
           }}
         >
-          {data.map((platform) => (
+          {sortOrders.map((platform) => (
             <MenuItem
-              key={platform.id}
-              value={platform.name}
-              onClick={() => onSelectPlatform(platform)}
+              key={platform.value}
+              value={platform.value}
+              onClick={() => onSelectSortOrder(platform.value)}
             >
-              {platform.name}
+              {platform.label}
             </MenuItem>
           ))}
         </Select>
       </FormControl>
     </div>
   );
-}
+};
