@@ -1,0 +1,126 @@
+name: 🚀 Deploy GameHub to AWS (Dev/Test/Prod)
+
+on:
+  push:
+    branches:
+      - dev
+      - test
+      - main
+
+env:
+  AWS_REGION: us-east-2
+  ECR_DEV: 048271427486.dkr.ecr.us-east-2.amazonaws.com/gamehub-dev
+  ECR_TEST: 048271427486.dkr.ecr.us-east-2.amazonaws.com/gamehub-test
+  ECR_PROD: 048271427486.dkr.ecr.us-east-2.amazonaws.com/gamehub-prod
+  SECRET_DEV: gamehub/dev
+  SECRET_TEST: gamehub/test
+  SECRET_PROD: gamehub/prod
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to AWS Environment
+    runs-on: ubuntu-latest
+
+    steps:
+      # -------------------------------
+      # 1️⃣ Checkout Code
+      # -------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -------------------------------
+      # 2️⃣ Configure AWS Credentials
+      # -------------------------------
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # -------------------------------
+      # 3️⃣ Determine Environment
+      # -------------------------------
+      - name: Set environment variables
+        id: env
+        run: |
+          if [[ "${GITHUB_REF##*/}" == "dev" ]]; then
+            echo "env_name=dev" >> $GITHUB_OUTPUT
+            echo "ecr_repo=${{ env.ECR_DEV }}" >> $GITHUB_OUTPUT
+            echo "secret_name=${{ env.SECRET_DEV }}" >> $GITHUB_OUTPUT
+            echo "ec2_host=${{ secrets.EC2_HOST_DEV }}" >> $GITHUB_OUTPUT
+          elif [[ "${GITHUB_REF##*/}" == "test" ]]; then
+            echo "env_name=test" >> $GITHUB_OUTPUT
+            echo "ecr_repo=${{ env.ECR_TEST }}" >> $GITHUB_OUTPUT
+            echo "secret_name=${{ env.SECRET_TEST }}" >> $GITHUB_OUTPUT
+            echo "ec2_host=${{ secrets.EC2_HOST_TEST }}" >> $GITHUB_OUTPUT
+          else
+            echo "env_name=prod" >> $GITHUB_OUTPUT
+            echo "ecr_repo=${{ env.ECR_PROD }}" >> $GITHUB_OUTPUT
+            echo "secret_name=${{ env.SECRET_PROD }}" >> $GITHUB_OUTPUT
+            echo "ec2_host=${{ secrets.EC2_HOST_PROD }}" >> $GITHUB_OUTPUT
+          fi
+
+      # -------------------------------
+      # 4️⃣ Retrieve Secrets from Secrets Manager
+      # -------------------------------
+      - name: Get API key from AWS Secrets Manager
+        id: secrets
+        run: |
+          RAW_SECRET=$(aws secretsmanager get-secret-value \
+            --secret-id ${{ steps.env.outputs.secret_name }} \
+            --query SecretString \
+            --output text)
+          # Extract only the API key value (if stored as JSON)
+          API_KEY=$(echo "$RAW_SECRET" | jq -r '.VITE_API_KEY // .api_key // .key // .API_KEY // .value // .secret // .[]? // empty')
+          if [ -z "$API_KEY" ]; then
+            API_KEY=$RAW_SECRET
+          fi
+          echo "API_KEY=$API_KEY" >> $GITHUB_ENV
+
+      # -------------------------------
+      # 5️⃣ Build and Tag Docker Image
+      # -------------------------------
+      - name: Build Docker image
+        run: |
+          echo "VITE_API_KEY=${API_KEY}" > .env.production
+          echo ".env.production contents:"
+          cat .env.production
+          docker build -t gamehub:${{ steps.env.outputs.env_name }} .
+          docker tag gamehub:${{ steps.env.outputs.env_name }} ${{ steps.env.outputs.ecr_repo }}:latest
+
+      # -------------------------------
+      # 6️⃣ Authenticate and Push to ECR
+      # -------------------------------
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} \
+          | docker login --username AWS --password-stdin ${{ steps.env.outputs.ecr_repo }}
+
+      - name: Push Docker image to ECR
+        run: |
+          docker push ${{ steps.env.outputs.ecr_repo }}:latest
+
+      # -------------------------------
+      # 7️⃣ Deploy to EC2
+      # -------------------------------
+      - name: Deploy on EC2 instance
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ steps.env.outputs.ec2_host }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "Pulling latest GameHub image for ${{ steps.env.outputs.env_name }}..."
+            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.env.outputs.ecr_repo }}
+            docker pull ${{ steps.env.outputs.ecr_repo }}:latest
+
+            echo "Stopping old container..."
+            docker stop gamehub || true
+            docker rm gamehub || true
+
+            echo "Starting new container..."
+            docker run -d -p 80:80 --name gamehub ${{ steps.env.outputs.ecr_repo }}:latest
